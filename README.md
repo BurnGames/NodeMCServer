@@ -12,6 +12,14 @@ Why?
 ===
 This is but a single piece of a large effort to create an entire Minecraft server written in Node.
 
+Development
+===
+To update your modules, simply run
+
+    node install.js
+
+This will download and install both NPM modules, and our own modules.
+
 To Do
 ===
 - Add tile entities
