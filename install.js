@@ -1,59 +1,73 @@
 var fs = require('fs');
-var http = require('https');
 var path = require('path');
 var exec = require('child_process').exec;
-var stream = require('stream');
 
 // delete anything from previous things
 removeDirectory('./node_modules');
 
 // now run npm install
-console.log("Installing minimal dependencies..");
-exec('npm install', function (error, stdout, stderr) {
+npmInstall('./', function (error) {
     if (error) {
-        throw error;
+        return console.warn('Failed to install NPM dependencies!');
     }
-    if (stdout.on) {
-        stdout.on('data', function (chunk) {
-            process.stdout.emit('data', chunk);
-        });
-    }
-    if (stderr.on) {
-        stderr.on('data', function (chunk) {
-            process.stderr.emit('data', chunk);
-        });
-    }
-}).on('error', function (error) {
-    throw error;
-}).on('close', function () {
-    console.log("Finished installing minimal dependencies, now downloading modules..");
+    console.log("Finished installing NPM dependencies, now downloading modules..");
     var async = require('async');
     async.series([
         function (callback) {
-            downloadFile('NodeMCProtocol', 'https://api.github.com/repos/BurnGames/NodeMCProtocol/zipball', function (error, path) {
+            downloadFile('NodeMCProtocol', 'https://api.github.com/repos/BurnGames/mc-protocol.js/zipball', function (error, path) {
                 if (error) {
                     return callback(error);
                 }
-                callback(undefined, path);
+                npmInstall('./node_modules/NodeMCProtocol', callback);
             });
         },
         function (callback) {
-            downloadFile('NodeMCWorldLoader', 'https://api.github.com/repos/BurnGames/NodeMCWorldLoader/zipball', function (error, path) {
+            downloadFile('NodeMCWorldLoader', 'https://api.github.com/repos/BurnGames/mc-loader.js/zipball', function (error, path) {
                 if (error) {
                     return callback(error);
                 }
-                callback(undefined, path);
+                npmInstall('./node_modules/NodeMCWorldLoader', callback);
             });
         }
     ], function (err) {
         if (err) {
-            console.error("Failed to download dependencies:");
-            console.error("Title: " + err.message);
-            throw err;
+            return;
         }
         console.log('Installed all dependencies. Starting..');
     });
 });
+
+function npmInstall(directory, callback, args) {
+    if (!args) {
+        args = '';
+    } else {
+        args = ' ' + args;
+    }
+    console.log('Installing NPM dependencies for "' + directory + '"..');
+    var current = process.cwd();
+    process.chdir(path.join(current, directory));
+    exec('npm install' + args + ' --production', function (error, stdout, stderr) {
+        if (error) {
+            throw error;
+        }
+        if (stdout.on) {
+            stdout.on('data', function (chunk) {
+                process.stdout.emit('data', chunk);
+            });
+        }
+        if (stderr.on) {
+            stderr.on('data', function (chunk) {
+                process.stderr.emit('data', chunk);
+            });
+        }
+    }).on('error', function (error) {
+        process.chdir(current);
+        callback(error);
+    }).on('close', function () {
+        process.chdir(current);
+        callback();
+    });
+}
 
 function downloadFile(directory, url, callback) {
     var AdmZip = require('adm-zip');
