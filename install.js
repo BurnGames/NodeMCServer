@@ -2,39 +2,30 @@ var fs = require('fs');
 var path = require('path');
 var exec = require('child_process').exec;
 
-// delete anything from previous things
-removeDirectory('./node_modules');
-
-// now run npm install
-npmInstall('./', function (error) {
-    if (error) {
-        return console.warn('Failed to install NPM dependencies!');
+console.log("Downloading modules..");
+var async = require('async');
+async.series([
+    function (callback) {
+        downloadFile('NodeMCProtocol', 'https://api.github.com/repos/BurnGames/mc-protocol.js/zipball', function (error, path) {
+            if (error) {
+                return callback(error);
+            }
+            npmInstall('./node_modules/NodeMCProtocol', callback);
+        });
+    },
+    function (callback) {
+        downloadFile('NodeMCWorldLoader', 'https://api.github.com/repos/BurnGames/mc-loader.js/zipball', function (error, path) {
+            if (error) {
+                return callback(error);
+            }
+            npmInstall('./node_modules/NodeMCWorldLoader', callback);
+        });
     }
-    console.log("Finished installing NPM dependencies, now downloading modules..");
-    var async = require('async');
-    async.series([
-        function (callback) {
-            downloadFile('NodeMCProtocol', 'https://api.github.com/repos/BurnGames/mc-protocol.js/zipball', function (error, path) {
-                if (error) {
-                    return callback(error);
-                }
-                npmInstall('./node_modules/NodeMCProtocol', callback);
-            });
-        },
-        function (callback) {
-            downloadFile('NodeMCWorldLoader', 'https://api.github.com/repos/BurnGames/mc-loader.js/zipball', function (error, path) {
-                if (error) {
-                    return callback(error);
-                }
-                npmInstall('./node_modules/NodeMCWorldLoader', callback);
-            });
-        }
-    ], function (err) {
-        if (err) {
-            return;
-        }
-        console.log('Installed all dependencies. Starting..');
-    });
+], function (err) {
+    if (err) {
+        return;
+    }
+    console.log('Installed all dependencies. Starting..');
 });
 
 function npmInstall(directory, callback, args) {
